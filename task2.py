@@ -5,10 +5,8 @@ import sys
 import time
 
 def run_command_in_docker(container, command):
-    exec_id = container.exec_run(command, detach=True)
-    exec_inspect = container.exec_inspect(exec_id.id)
-    exec_output = exec_inspect['ExitCode']
-    return exec_output
+    exec_result = container.exec_run(command)
+    return exec_result.output.decode().strip()
 
 def send_logs_to_cloudwatch(log_group, log_stream, log_events, aws_access_key_id, aws_secret_access_key, aws_region):
     client = boto3.client(
@@ -51,7 +49,6 @@ def send_logs_to_cloudwatch(log_group, log_stream, log_events, aws_access_key_id
     except Exception as e:
         print(f"Error sending logs to CloudWatch: {str(e)}")
 
-
 def main():
     parser = argparse.ArgumentParser(description='Run a command inside a Docker image and send logs to AWS CloudWatch.')
     parser.add_argument('--docker-image', type=str, help='Name of the Docker image', required=True)
@@ -66,8 +63,7 @@ def main():
 
     try:
         docker_client = docker.from_env()
-        container = docker_client.containers.run(args.docker_image, detach=True)
-        exit_code = run_command_in_docker(container, args.bash_command)
+        container = docker_client.containers.run(args.docker_image, detach=True, command='/bin/bash -c "{}"'.format(args.bash_command))
         container_logs = container.logs().decode().split('\n')
         send_logs_to_cloudwatch(args.aws_cloudwatch_group, args.aws_cloudwatch_stream, container_logs,
                                 args.aws_access_key_id, args.aws_secret_access_key, args.aws_region)
@@ -78,7 +74,6 @@ def main():
     except Exception as e:
         print(f"An error occurred: {str(e)}")
         sys.exit(1)
-
 
 if __name__ == "__main__":
     main()
