@@ -63,7 +63,12 @@ def main():
 
     try:
         docker_client = docker.from_env()
-        container = docker_client.containers.run(args.docker_image, detach=True, command='/bin/bash -c "{}"'.format(args.bash_command))
+        container = docker_client.containers.run(args.docker_image, detach=True, command='/bin/sh -c "{}"'.format(args.bash_command))
+        
+        # Print logs as they are being processed
+        for log in container.logs(stream=True):
+            print(log.decode(), end='')
+
         container_logs = container.logs().decode().split('\n')
         send_logs_to_cloudwatch(args.aws_cloudwatch_group, args.aws_cloudwatch_stream, container_logs,
                                 args.aws_access_key_id, args.aws_secret_access_key, args.aws_region)
