@@ -68,7 +68,8 @@ def main():
         # Print logs as they are being processed
         for log in container.logs(stream=True):
             print(log.decode(), end='')
-
+            sys.stdout.flush()  # Flush the buffer to ensure immediate printing
+        
         container_logs = container.logs().decode().split('\n')
         send_logs_to_cloudwatch(args.aws_cloudwatch_group, args.aws_cloudwatch_stream, container_logs,
                                 args.aws_access_key_id, args.aws_secret_access_key, args.aws_region)
